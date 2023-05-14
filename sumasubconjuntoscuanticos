@@ -1,0 +1,44 @@
+open Microsoft.Quantum.Arrays;
+open Microsoft.Quantum.Diagnostics;
+open Microsoft.Quantum.Math;
+
+operation SubsetSum(n : Int, nums : Int[], target : Int) : Bool {
+    let N = 2^n;
+
+    // Inicialización de estado uniforme
+    use qubits = Qubit[n];
+    ApplyToEach(H, qubits);
+
+    repeat {
+        // Oráculo
+        let (b, s) = MeasureInteger(qubits, LittleEndian);
+        let sum = 0;
+        for i in 0 ..< n {
+            if ((s & (1 <<< i)) != 0) {
+                set sum += nums[i];
+            }
+        }
+        set b = (sum == target);
+
+        // Reflejo sobre el estado promedio
+        ApplyToEach(H, qubits);
+        for i in 0 ..< n {
+            if ((s & (1 <<< i)) != 0) {
+                X(qubits[i]);
+            }
+        }
+        Controlled Z(qubits[0 .. n - 1], qubits[n - 1]);
+        for i in 0 ..< n {
+            if ((s & (1 <<< i)) != 0) {
+                X(qubits[i]);
+            }
+        }
+        ApplyToEach(H, qubits);
+
+        if (b) {
+            return true;
+        }
+    } until (false);
+
+    return false;
+}
